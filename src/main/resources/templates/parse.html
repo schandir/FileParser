@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+
+<html xmlns:th="http://www.thymeleaf.org">
+
+<body>
+	<div>
+		<form th:action="@{/parseFile}" method="POST">
+			<label for="fileLocation">File location:</label>
+			<input id="fileLocation" type="text" name="fileLocation"/>
+			<label id="delimiter" for="delimiter">Delimiter:</label>
+			<input type="text" name="delimiter"/>
+			<input type="submit" value="Parse"/>
+		</form>
+	</div>
+</body>
+
+</html>

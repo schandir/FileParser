@@ -1,0 +1,138 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'eclipse'
+apply plugin: 'eclipse-wtp'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'docker'
+apply plugin: 'jacoco'
+
+
+
+group = 'com.nathan.fileparser'
+version = release + '.' + build
+
+description = """File Parser"""
+
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+configurations {
+    jacoco
+    ajc
+    aspects
+    ajInpath
+    sql
+	all*.exclude module: 'slf4j-log4j12'
+	all*.exclude module: 'servlet-api'
+}
+
+repositories {
+    maven { url "https://repo.maven.apache.org/maven2/" }
+}
+
+buildscript {
+  ext {
+    springBootVersion = '1.5.4.RELEASE'
+  }
+  repositories {
+    maven { url "https://repo.maven.apache.org/maven2/" }
+  }
+  dependencies {
+    classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    classpath('se.transmode.gradle:gradle-docker:1.2')
+    
+  }
+}
+
+//eclipse.classpath.downloadJavadoc = true // defaults to 'false'
+eclipse.classpath.downloadSources = true
+
+dependencies {
+
+	compile("org.springframework.boot:spring-boot-starter-thymeleaf")
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-actuator', version:'1.5.4.RELEASE'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-aop', version:'1.5.4.RELEASE'
+    
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-parent', version:'1.5.4.RELEASE'
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version:'1.5.4.RELEASE'
+    
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat', version: '1.5.4.RELEASE'
+
+	
+    compile group: 'javax.servlet', name: 'jstl', version:'1.2'
+    compile group: 'javax.validation', name: 'validation-api'
+    
+        //xml-rpc client jars
+    compile(group: 'commons-logging', name: 'commons-logging-api', version: '1.1')
+
+    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.2'
+    compile group: 'commons-logging', name: 'commons-logging', version: '1.2'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
+    compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.1'
+ 
+    compile group: 'commons-io', name: 'commons-io', version:'2.0.1'
+    compile group: 'org.projectlombok', name: 'lombok', version:'1.16.6'
+
+    testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version:'1.5.4.RELEASE'
+    testCompile group: 'junit', name: 'junit', version:'4.12'
+
+}
+
+
+processResources {
+    filter(org.apache.tools.ant.filters.ReplaceTokens, tokens: [version: project.version])
+}
+
+test {
+   
+   jacoco {
+        //append = false
+        destinationFile = file("$buildDir/coverage-results/jacoco.exec")
+    }
+    
+     exclude "**/cucumber/**"
+
+}
+
+jar {
+    from files(sourceSets.main.output.classesDir)
+    //exclude 'config'
+    manifest {
+        attributes("Implementation-Title": "FileParserWebService", "Implementation-Version": version)
+        attributes 'Main-class':'com.nathan.fileparser.service.Application'
+    afterEvaluate {
+        Collection classpath = configurations.compile.collect {"$it.name" }
+        attributes("Class-Path" : "config/ " + classpath.join(' '))
+    }
+    }
+}
+
+task zip(type: Zip , dependsOn: jar) {
+    fileMode = 0755
+    from("scripts")
+    into('config'){
+        from("$buildDir/resources/main/config/")
+        from("$buildDir/resources/test/")
+    }
+    into('libs') {
+        from configurations.runtime
+        from("$buildDir/libs/")
+    }
+}
+
+artifacts {
+    archives zip
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.2'
+}
+
+jacoco {
+    toolVersion = '0.7.7.201606060606'
+}
